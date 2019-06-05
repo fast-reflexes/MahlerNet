@@ -1,0 +1,156 @@
+{
+	"model_name": "MyMahlerNet",						# arbitrary name for this model, should be the same as the run name ideally but can be anything, it is not used for anything anymore and has been replaced by the command line run name
+	"validation_set_ratio": 0.1, 						# [0.0, 1.0], the part of the available data that should be used for validation
+	"save_graph": True, 								# whether to save graph in root folder subfolder "graphs"
+	"save_stats": True, 								# whether to save stats that can be visualized with display_stats.py in root folder subfolder records after training
+	"save_model": "1e", 								# how often to save model, use a number and then a letter e or s indicating if the number refers to epochs or global steps, use literal None not to save at all
+	"end_of_epoch_fns": 2, 								# how often to run the end-of-epoch functions, if any
+	"use_randomness": True, 							# for reproducibility
+	"use_gpu": True, 									# allow the use of a gpu, if there is one
+	"verbose": 1,										# 0 means no more printouts than training progress, 1 means basic output, 2 means verbose output (not fully functional)
+	"batch_sz" : 256,
+	"epochs" : 50,									
+	"learning_rate" : 0.001,
+	"batch_norm": True,									# whether to apply batch normalization to all feed forward layers (including output layers)
+	"batch_norm_before_act": True,						# whether to apply the batch normalization before or after the activation function (then also applied after dropout, if any, to use bn on recurrent layers, use "lstm" and "bn" for version in respective encoder / decoder
+	"act": "leakyrelu",									# choose between relu, leakyrelu, tanh and sigmoid
+	"optimizer": "rmsprop", 							# "adam" or "rmsprop"
+	"generation": {										
+		"sequence_base": "bar",							# the size of the musical unit used for modelling, may be "bar" or some basic duration such as "d4", "d8" etc... (not fully implemented, use "bar")
+		"ctx_length": 1,								# the number of units in context (not fully implemented, use 1)
+		"inp_length": 1,								# the number of units in input (not fully implemented, use 1)
+	},	
+	"modelling_properties": {
+		"offset": {
+			"include": True,							# whether to model the offset property
+			"dropout": 0.0,								# [0.0, 1.0] by what probability to apply dropout on offset output layers EXCEPT the final softmax layer on which no dropout is ever applied
+			"multiclass": False,						# whether offset is modelled as a multiclass or exclusive class property (not fully tested, use False)
+			"dist_metric": True,						# whether to output distance metric during training for the offset property
+			"generation_temperature": 1.0				# the softmax temperature to apply to the offset property during inference
+		},
+		"duration": {
+			"include": True,							# whether to model the duration property
+			"dropout": 0.0,								# [0.0, 1.0] by what probability to apply dropout on duration output layers EXCEPT the final softmax layer on which no dropout is ever applied
+			"multiclass": False,						# whether duration is modelled as a multiclass or exclusive class property (not fully tested, use False)
+			"dist_metric": True,						# whether to output distance metric during training for the duration property
+			"next_step_reduction": True,				# whether to mask the logit corresponding to the 0 duration class whenever offset is 0 (this is an illegal combination) with the value 10^-38
+			"generation_temperature": 1.0				# the softmax temperature to apply to the duration property during inference
+		},
+		"pitch": {
+			"same_step_reduction": False,				# whether to mask the logits corresponding to the pitches below the last pitch whenever offset is 0 (this is an illegal combination) with the value 10^-38
+			"dropout": 0.0,								# [0.0, 1.0] by what probability to apply dropout on pitch output layers EXCEPT the final softmax layer on which no dropout is ever applied
+			"multiclass": False,						# whether pitch is modelled as a multiclass or exclusive class property (not fully tested, use False)
+			"dist_metric": True,						# whether to output distance metric during training for the pitch property
+			"generation_temperature": 1.0				# the softmax temperature to apply to the pitch property during inference
+		},				
+		"instrument": {									
+			"include": True,							# whether to model the instrument property
+			"dropout": 0.0,								# [0.0, 1.0] by what probability to apply dropout on instrument output layers EXCEPT the final softmax layer on which no dropout is ever applied
+			"multiclass": False,						# whether instrument is modelled as a multiclass or exclusive class property (not fully tested, use False)
+			"generation_temperature": 1.0				# the softmax temperature to apply to the instrument property during inference
+		},
+		"special_tokens": {			
+			"include": True,							# whether to include the START token in the context (not tested without, set to True)
+		},
+		"beats": {
+			"include": True,							# whether to add additional conditioning with beats from the underlying metric flow during encoding and decoding
+		},		
+		"active_pitches": {
+			"include": True,							# whether to add additional conditioning with currently turned on pitches during decoding
+		},
+		"active_instruments": {
+			"include": True,							# whether to add additional conditioning with currently turned on instruments during decoding
+		}
+	},
+	"model" : {
+		"ctx": True,									# whether to use context conditioning with the n units preceding the input
+		"inp": True,									# whether to use process the input with an input encoder
+		"vae": True,									# whether to use a vae and its latent space
+		"dec": True										# whether to use a decoder for output generation (without it, there is no output so this should be turned on)
+	},
+	# encoder input summary
+	"inp_enc" : {
+		"type": "lstm",									# type of cell in the input encoder, "lstm" or "gru", if present
+		"version": "block",								# choose from different tensorflow implementations, "lstm", "block" or "bn" for "lstm" and "gru", "blockv2" and "keras_gru" for "gru". "cudnn" works for both if gpu is available and "bn" is the only cell which uses batch normalization
+		"dropout": 0.35,								# [0.0, 1.0] by what probability to apply recurrent dropout in the input encoder, if present
+		"init": "var",									# whether to initialize the states in the input encoder cells with zeros or trainable variables ("zeros" or "var")
+		"num_layers" : 2,
+		"sz_state" : 512,
+		"bidirectional_type": "default"					# whether to use the stack_bidirectional_dynamic_rnn ("stack") or the regular bidirectional_dynamic_rnn ("default") in the input encoder
+	},
+	
+	#encoder context summary
+	"ctx_enc" : {
+		"type": "lstm",									# type of cell in the context encoder, "lstm" or "gru", if present
+		"version": "block",								# choose from different tensorflow implementations, "lstm", "block" or "bn" for "lstm" and "gru", "blockv2" and "keras_gru" for "gru". "cudnn" works for both if gpu is available and "bn" is the only cell which uses batch normalization
+		"dropout": 0.35,								# [0.0, 1.0] by what probability to apply recurrent dropout in the context encoder, if present
+		"init": "var",									# whether to initialize the states in the context encoder cells with zeros or trainable variables ("zeros" or "var")
+		"num_layers" : 2, 
+		"sz_state" : 512,
+		"bidirectional_type": "default"					# whether to use the stack_bidirectional_dynamic_rnn ("stack") or the regular bidirectional_dynamic_rnn ("default") in the context encoder
+	},
+	
+	# vae
+	"vae" : {
+		"z_dim" : 256,									# size of the latent space in the vae, if present
+		"dropout": 0.35									# [0.0, 1.0] by what probability to apply dropout in the vae
+	},
+	
+	# decoder
+	"dec" : {
+		"num_layers" : 2,
+		"sz_state" : 512,
+		"model": "lstm", 								# "balstm" to use the balstm decoder and "lstm" to use a regular "rnn" decoder
+		"framework": "seq2seq", 						# which Tensorflow framework to use for the decoder "seq2seq" or "rnn", should not matter but if scheduled sampling is used, then the seq2seq framwork must be uysed
+		"type": "lstm", 								# type of cell in the decoder, "lstm" or "gru"
+		"version": "block",								# choose from different tensorflow implementations, "lstm", "block" or "bn" for "lstm" and "gru", "blockv2" and "keras_gru" for "gru". "cudnn" works for both if gpu is available and "bn" is the only cell which uses batch normalization
+		"init": "z",									# whether to initialize the states in the decoder cells with zeros ("zeros"), trainable variables ("var") or projection(s) from the latent space ("z")
+		"layer_strategy": "same", 						# "same" to initialize all layers (if several) with the same projection from the latent space, "diff" to use different
+		"scheduled_sampling": False,					# whether to use scheduled sampling (not possible when "balstm" is set as "model" or when using beats, active pitches or instruments as additional conditioning
+		"scheduled_sampling_scheme": "linear", 			# whether to use a "sigmoid" or "linear" scheduled sampling schedule
+		"scheduled_sampling_min_truth": 0.0, 			# [0.0, 1.0] the minimum probability of supplying teacher-forced targets in the scheduled sampling procedure, when using the "linear" schedule
+		"scheduled_sampling_mode": "sample", 			# "sample" to sample the next step or "max" to use argmax to determine the next step prediction on time steps where scheduled sampling determines that teacher forcing should not be used
+		"scheduled_sampling_rate": 0.000010, 			# the rate to use for the scheduled sampling schedule (implication differs depending on the chosen schedule)
+		"dropout": 0.35,								# [0.0, 1.0] by what probability to apply recurrent dropout in the decoder
+		"balstm": {
+			"sz_conv": 25, 								# the size of the balstm convolution, this is how many surrounding pitches (including the modelled one) that are taken into account
+			"init": "same", # "diff" or "same"			# if init is "z" and using the balstm, use "same" to use the same projection as starting states for all pitches in the same layer and use "diff" to create different projections
+			"add_pitch": True,							# whether to add the pitch's number as input to every instance of the pitch balstm, this is given in one-hot form
+			"num_filters": 64,							# the number of filters to use for the pitch surrounding convolution
+			"conv_dropout": 0.0							# [0.0, 1.0] by what probability to apply dropout in the balstm convolutions
+		},
+		"feed": {
+			"z": {						
+				"use": True,							# whether to supply the latent content as input during every time step of decoding
+				"strategy": "proj", 					# "raw" to feed the sampled latent vector itself and "proj" to feed a projection of the latent vector, if a single projection is used for starting states, then the same is used here, otherwise, a new projection is created
+				"sz": 128								# size of the projection of the latent space into the feed during decoding given that no single projection could be determined that already exists
+			},
+			"ctx": {
+				"use": True,							# whether or not to feed the context summary during every time step of decoding, if context conditioning is used
+			}
+		}
+	},
+	"output_layers": {									# last output layer (with softmax) to the correct number of output units will be taken care of automatically
+		"offset": [], 									# intermediate layers additional to the final softmax layer for offset on the form "(SZ, ACT)" where SZ is the number of units in the layer and ACT is an activation function that is accepted by the tf.layers.Dense class, for example '"relu"', '"tanh"' etc...
+		"pitch": [],									# intermediate layers additional to the final softmax layer for pitch on the form "(SZ, ACT)" where SZ is the number of units in the layer and ACT is an activation function that is accepted by the tf.layers.Dense class, for example '"relu"', '"tanh"' etc...
+		"duration": [],									# intermediate layers additional to the final softmax layer for duration on the form "(SZ, ACT)" where SZ is the number of units in the layer and ACT is an activation function that is accepted by the tf.layers.Dense class, for example '"relu"', '"tanh"' etc...
+		"instrument": []								# intermediate layers additional to the final softmax layer for instrument on the form "(SZ, ACT)" where SZ is the number of units in the layer and ACT is an activation function that is accepted by the tf.layers.Dense class, for example '"relu"', '"tanh"' etc...
+	},
+	"loss": {
+		"vae": True,									# whether to include the vae loss in the loss calculation during training
+		"recon": True,									# whether to include the reconstruction loss in the loss calculation during training
+		"free_bits": 0,									# the number of free bits to use for the vae free bits extension, use 0 to not use the free bits extension						
+		"beta_annealing": False,						# whether to use the vae beta extension or not
+		"beta_max": 0.2,								# [0.0, 1.0] the maximum fraction of the original vae loss to anneal to (after any involvement of free bits), this value will be used instead of the calculated value when the annealing has gone on for long
+		"beta_rate": 0.999,								# annealing rate of the beta vae
+		"regularization": 0.0,							# the amount of L2 regularization to apply to all weights except biases and trainable starting states on rnns
+		"p_weight": 1.0,								# for individually weighted losses (not implemented)
+		"o_weight": 1.0,								# for individually weighted losses (not implemented)
+		"d_weight": 1.0,								# for individually weighted losses (not implemented)
+		"i_weight": 1.0,								# for individually weighted losses (not implemented)
+		"framework": "seq2seq" 							# "seq2seq" to use sequence_loss in seq2seq framework to calculate loss, "plain" to use manual calculation of loss (should give the same result)
+	},
+	"training_output": {
+		"dists": False 									# whether to continuously output the distribution of guesses, targets and the diff between the two after every step of training
+	}
+}
