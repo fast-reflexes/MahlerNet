@@ -7,15 +7,13 @@ MahlerNet has been trained on both the PIANOMIDI and MUSEDATA data sets as well 
 ### Dependencies and versions
 MahlerNet was implemented using the following two setups where it is thus known to work:
 
-```Anaconda 4.6.8, Python 3.7.2, Numpy 1.15.4, Tensorflow 1.13.1```
+```Anaconda 4.6.8, Python 3.7.2, Numpy 1.15.4, Tensorflow 1.13.1, Mido 1.2.9, Matplotlib 3.0.3```
 
 and
 
-```Python 3.6.8, Numpy 1.16.2, Tensorflow 1.13.1```
+```Python 3.6.8, Numpy 1.16.2, Tensorflow 1.13.1, Mido 1.2.8, Matplotlib 2.1.0```
 
-Some of the additional packages needed are
-
-```Mido 1.2.9 ```
+The ```Mido``` package was used as a low-level handler of MIDI files.
 
 ### Run MahlerNet
 MahlerNet comes with a variety of settings, some set via command line others set in the config file, but here is outlined how to get the most straightforward setup up and running with a folder of input MIDI. The notion of  ```ROOT``` folder refers to a folder associated with a specific training set and in this folder, MahlerNet expects to find all input data and it will place all output and trained models in this very same directory.
