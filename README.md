@@ -1,5 +1,6 @@
 # MahlerNet 
 ### Unbounded Orchestral Music with Neural Networks
+### Website with samples: [MahlerNet.se](http://www.mahlernet.se)
 MahlerNet is a neural network resulting from a master thesis that models music in MIDI format inspired by MusicVAE, PerformanceRNN, BachProp and BALSTM. Simply put, MahlerNet is a sequence to sequence model that uses a conditional variational autoencoder (C-VAE) for its latent space, conditioned on a previous unit of music to create long-term structure. MahlerNet uses a custom MIDI preprocessor that incorporates heuristics from music theory and works by modelling the properties of offset to previous event, duration, pitch and instrument for an event, resulting in a representation with no immediate restriction on the number of instruments used. In practice, the current version of MahlerNet has restricted the number of instruments to 23 so that all the 128 GM MIDI instruments are mapped to one of these. Furthermore, 60 classes are used to represent time for both offset and duration and finally 96 pitches out of the 128 MIDI pitches are used. MahlerNet was written from scratch in the spring of 2019 in Tensorflow and at [http://www.mahlernet.se](http://www.mahlernet.se) there is a plethora of listening samples as well as a link to the thesis itself.
 
 MahlerNet has been trained on both the PIANOMIDI and MUSEDATA data sets as well as a new custom MAHLER data set consisting of most of the movements from Mahler's 10 symphonies with good results. Weights from these training sessions are available in the "weights" folder. For someone who knows music, it is fairly easy to hear that MahlerNet is able to learn style in terms of harmonies, instrumentation and the way voices interact with each other, and long-term structure is present in these domains. As often with neural networks modelling music however, long-term structure in terms of reoccuring themes and motives is yet to come.
@@ -30,7 +31,7 @@ Uses the name ```NAME``` for the current training session and will subsequently 
 
 ```python RunMahlerNet.py generate NAME --root ROOT --type pred --length 10 --samples 2 --units - --use_start_ctx --model MODEL```
 
-Uses the model ```MODEL```, expected to be found in the folder ```ROOT/runs/NAME/trained_models``` (omit any suffixes of the three training files named ```MODEL``` with different suffixes), to generate 2 10 unit (bars in this case) long random samples (not seeded) and that uses a special start token only in the context conditioning. Resulting MIDI output will be placed in the folder ```ROOT/runs/NAME/generated```.
+Uses the model ```MODEL```, expected to be found in the folder ```ROOT/runs/NAME/trained_models``` (omit any suffixes of the three training files named ```MODEL``` with different suffixes), to generate 2 10-unit (bars in this case) long random samples (not seeded) and that uses a special start token only in the context conditioning. Resulting MIDI output will be placed in the folder ```ROOT/runs/NAME/generated```. To seed the generation, use the argument ```--file FILE``` to refer to a file ```ROOT/data/FILE.pickle``` and supply what unit to use for seeding in the ```--units``` argument. Units are 0-indexed and refer to the unit to reconstruct; for example ```10cz``` means that we use both the context (10th unit) and the input (11th unit) to seed the model. If no context is used, then an all 0's context is used unless the argument ```--use_start_ctx```is used which signals that the context should contain the special start token used as initial context for all songs during training.
 
 ```python RunMahlerNet.py generate NAME --root ROOT --type recon --file FILE --units 0cz --model MODEL```
 
@@ -38,11 +39,11 @@ Uses the same setting as above but instead tries to reconstruct the first bar of
 
 ```python RunMahlerNet.py generate NAME --root ROOT --type n_recon --model MODEL```
 
-Tries to reconstruct all the files in the training set with interactive precision feedback. Use the additional flag ```--use_teacher_forcing``` to do the same reconstruction but with teacher forcing, mimicking the behaviour at training exactly. Produces no output.
+Tries to reconstruct all the files in the training set with interactive precision feedback. Use the additional flag ```--use_teacher_forcing``` to do the same reconstruction but with teacher forcing, mimicking the behaviour at training time exactly. Produces no output.
 
 ```python RunMahlerNet.py generate NAME --root ROOT --type intpol --file FILE --units 9z 19z --steps 5 --model MODEL```
 
-Performs a 5-step interpolation between the 10th and the 20th unit (here bar) of input file ```FILE``` fetched from the file ```ROOT/data/FILE.pickle``` and places the output in ```ROOT/runs/NAME/generated```.
+Performs a 5-step interpolation between the 10th and the 20th unit (here bar) of input file ```FILE``` fetched from the file ```ROOT/data/FILE.pickle``` and places the output in ```ROOT/runs/NAME/generated```. Currently only works for models that does not use context conditioning.
 
 Finally, to visualize training from one or several runs, run
 
