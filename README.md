@@ -62,7 +62,7 @@ Please send a mail to music@mahlernet.se with comments or suggestions. To cite t
 @mastersthesis{mahlernet,
     author       = {Elias Lousseief}, 
     title        = {MahlerNet - Unbounded Orchestral Music with Neural Networks},
-    school       = {Royal College of Technology},
+    school       = {Royal Institute of Technology},
     year         = 2019,
     address      = {Stockholm, Sweden},
     month        = 6
